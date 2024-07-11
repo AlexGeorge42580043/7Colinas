@@ -1,8 +1,7 @@
 {
 	"folders": [
 		{
-			"name": "Proyecto 7 colinas",
-			"path": "."
+			"path": "src"
 		}
 	],
 	"settings": {}
