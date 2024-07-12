@@ -8,8 +8,13 @@
 #include <WiFiClientSecure.h>
 #include <DNSServer.h>
 #include <secrets.h>
+#include <ArduinoJson.h>
+#include <CTBot.h>
+#include "Utilities.h"
 
     ESP32Time rtc;
+    CTBot miBot;
+
 
 //DE ACA PARA ABAJO ESTA LO QUE TIENE QUE VER CON LA HORA ACTUAL
     WiFiUDP ntpUDP;
@@ -54,6 +59,7 @@
     float tempTanque4;//aca se almacena la temperatura (-10 - 25) de el tanque
     float tempTanque5;//aca se almacena la temperatura (-10 - 25) de el tanque
     float tempTanque6;//aca se almacena la temperatura (-10 - 25) de el tanque
+    //const char mensaje[60];
 
 
 void setup() {
@@ -103,6 +109,13 @@ void setup() {
     
     app.getApp<Firestore::Documents>(Docs);
 
+    miBot.setTelegramToken(TOKEN);
+    if (miBot.testConnection()){
+      Serial.println("\n Bot conectado");
+    }
+    else{
+      Serial.println("\n Bot no conectado");
+    }
 
 //CONFIGURA PARA AJUSTAR LA SENCIBILIDAD DEL ADC
     for (int tanqueNumero = 0; tanqueNumero < 6; ++tanqueNumero) {
@@ -118,10 +131,11 @@ void loop() {
     app.loop();
     Docs.loop();
     timeClient.update();
-
-    Serial.println(timeClient.getFormattedTime()); // Muestra hora en terminal
-    Serial.println(rtc.getDate()); //Muestra fecha en terminal
-    delay(1000);
+    
+  //Estas lineas son para mastrar la hora y la fecha en el terminal
+  // Serial.println(timeClient.getFormattedTime()); // Muestra hora en terminal
+  //Serial.println(rtc.getDate()); //Muestra fecha en terminal
+  // delay(1000);
 
    
   //intervalLeer=3seg
@@ -130,9 +144,11 @@ void loop() {
     //intervalPublicar=10min
     if (millis() - previousMillisPublicar >= intervalPublicar){
       // Publica cada 3 seg si pasaron 10 min
+      
       switch (publicacionNumero){
         case 1:
           crearDocumento(tempTanque1, rtc.getDate(), timeClient.getFormattedTime(), publicacionNumero);
+          miBot.sendMessage(ID_CHAT, "Hay temperaturas fuera de rango, revisar lo antes posible"); //Manda este mensaje a telegram, al id correspondiente
           publicacionNumero=2;
         break;
         case 2:
@@ -161,37 +177,42 @@ void loop() {
     //Lee los valores de temperatura cada 3seg
       switch (tanqueNumero){
       case 1:
-        valores[0] = 26;//analogRead(adcPins[tanqueNumero]);
+        valores[0] = analogRead(adcPins[tanqueNumero]);
         tempTanque1 = convertir_rango(valores[0]);
         tanqueNumero = 2;
       break;
       case 2:
-        valores[1] = 59; //analogRead(adcPins[tanqueNumero]);
+        valores[1] = analogRead(adcPins[tanqueNumero]);
         tempTanque2 = convertir_rango(valores[1]);
         tanqueNumero = 3;
         break;
       case 3:
-        valores[2] = 359;//analogRead(adcPins[tanqueNumero]);
+        valores[2] = analogRead(adcPins[tanqueNumero]);
         tempTanque3 = convertir_rango(valores[2]);
         tanqueNumero = 4;
         break;
       case 4:
-        valores[3] = 1006;//analogRead(adcPins[tanqueNumero]);
+        valores[3] = analogRead(adcPins[tanqueNumero]);
         tempTanque4 = convertir_rango(valores[3]);
         tanqueNumero = 5;
         break;
       case 5:
-        valores[4] = 396;//analogRead(adcPins[tanqueNumero]);
+        valores[4] = analogRead(adcPins[tanqueNumero]);
         tempTanque5 = convertir_rango(valores[4]);
         tanqueNumero = 6;
         break;
       case 6:
-        valores[5] = 958;//analogRead(adcPins[tanqueNumero]);
+        valores[5] = analogRead(adcPins[tanqueNumero]);
         tempTanque6 = convertir_rango(valores[5]);
         tanqueNumero = 1;
         break;
     }
   }
+  //Estas lineas devuelven un mensaje con el id correspondiente del chat a cualquier persona que escriba a este bot
+  //TBMessage msg;
+  //if(CTBotMessageText==miBot.getNewMessage(msg)){
+    //miBot.sendMessage(msg.sender.id, "ID: " + (String)msg.sender.id);
+  //}
 }
 
 void asyncCB(AsyncResult &aResult){
